@@ -25,8 +25,6 @@ class CustomDBDocument(BaseModel):
     created_at: datetime = Field(
         default_factory=_utc_now, description="date of creation"
     )
-    updated_at: datetime = Field(
-        default_factory=_utc_now, title="date of last update"
-    )
+    updated_at: datetime = Field(default_factory=_utc_now, title="date of last update")
     is_deleted: bool = Field(default=False, description="is document deleted")
     deleted_at: Optional[datetime] = Field(None, description="date of deletion")

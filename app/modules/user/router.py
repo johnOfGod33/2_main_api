@@ -42,7 +42,10 @@ async def login(
                 headers={"WWW-Authenticate": "Bearer"},
             )
         token = create_access_token({"sub": user.id})
-        return TokenOut(access_token=token, token_type="bearer")
+        return TokenOut(
+            access_token=token,
+            token_type="bearer",  # nosec B106
+        )
     except HTTPException:
         raise
     except Exception as e:

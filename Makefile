@@ -1,4 +1,4 @@
-.PHONY: install test run run-dev
+.PHONY: install test run run-dev docs
 
 install:
 	uv pip install -r app/requirements.txt
@@ -17,3 +17,6 @@ infra-dev:
 
 infra:
 	export DOCKER_API_VERSION=1.41 && docker compose -f docker-compose.yml up -d --build
+
+docs:
+	mkdocs serve

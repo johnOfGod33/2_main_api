@@ -126,7 +126,11 @@ async def update_article(
     patch["updated_at"] = datetime.now(timezone.utc)
     await db[ARTICLES_COLLECTION].update_one({"_id": oid}, {"$set": patch})
     updated = await db[ARTICLES_COLLECTION].find_one({"_id": oid})
-    assert updated is not None
+    if updated is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Article update inconsistency.",
+        )
     return _doc_to_article_out(updated)
 
 

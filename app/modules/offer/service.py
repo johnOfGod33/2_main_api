@@ -103,7 +103,11 @@ async def create_offer(
     }
     result = await db[OFFERS_COLLECTION].insert_one(doc)
     enriched = await get_offer_with_article_by_id(db, str(result.inserted_id))
-    assert enriched is not None
+    if enriched is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Offer data inconsistency after insert.",
+        )
     return enriched
 
 
@@ -188,7 +192,11 @@ async def respond_to_offer(
         )
         await update_article_status_by_id(db, article_id, ArticleStatus.reserved)
         updated_offer = await _get_offer_doc(db, offer_id)
-        assert updated_offer is not None
+        if updated_offer is None:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Offer not found after accept.",
+            )
         await create_order_from_offer(db, _doc_to_offer_out(updated_offer))
     else:
         await db[OFFERS_COLLECTION].update_one(
@@ -196,7 +204,11 @@ async def respond_to_offer(
             {"$set": {"status": OfferStatus.declined.value, "updated_at": now}},
         )
     enriched = await get_offer_with_article_by_id(db, offer_id)
-    assert enriched is not None
+    if enriched is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Offer data inconsistency.",
+        )
     return enriched
 
 
@@ -227,5 +239,9 @@ async def cancel_offer(
         {"$set": {"status": OfferStatus.cancelled.value, "updated_at": now}},
     )
     enriched = await get_offer_with_article_by_id(db, offer_id)
-    assert enriched is not None
+    if enriched is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Offer data inconsistency after cancel.",
+        )
     return enriched

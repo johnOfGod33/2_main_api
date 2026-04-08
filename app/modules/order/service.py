@@ -48,9 +48,7 @@ async def get_order_with_article_by_id(
     return rows[0] if rows else None
 
 
-async def _get_order_doc(
-    db: AsyncIOMotorDatabase, order_id: str
-) -> dict | None:
+async def _get_order_doc(db: AsyncIOMotorDatabase, order_id: str) -> dict | None:
     try:
         oid = ObjectId(order_id)
     except InvalidId:
@@ -119,7 +117,11 @@ async def create_direct_order(
     }
     result = await db[ORDERS_COLLECTION].insert_one(doc)
     enriched = await get_order_with_article_by_id(db, str(result.inserted_id))
-    assert enriched is not None
+    if enriched is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Order data inconsistency after insert.",
+        )
     return enriched
 
 
@@ -151,7 +153,11 @@ async def mock_payment(
     )
     await update_article_status_by_id(db, doc["article_id"], ArticleStatus.sold)
     enriched = await get_order_with_article_by_id(db, order_id)
-    assert enriched is not None
+    if enriched is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Order data inconsistency after payment.",
+        )
     return enriched
 
 
@@ -235,7 +241,11 @@ async def update_order_status(
             db, doc["article_id"], ArticleStatus.published
         )
     enriched = await get_order_with_article_by_id(db, order_id)
-    assert enriched is not None
+    if enriched is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Order data inconsistency after status update.",
+        )
     return enriched
 
 
@@ -280,5 +290,9 @@ async def get_order_by_id(
             detail="Not allowed to view this order.",
         )
     enriched = await get_order_with_article_by_id(db, order_id)
-    assert enriched is not None
+    if enriched is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Order data inconsistency.",
+        )
     return enriched

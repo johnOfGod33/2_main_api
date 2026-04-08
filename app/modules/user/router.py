@@ -1,8 +1,10 @@
+from typing import Annotated
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from app.core.security import create_access_token
-from app.dependencies import get_db
+from app.dependencies import get_current_user, get_db
 
 from .model import LoginInput, TokenOut, UserCreate, UserOut
 from .service import authenticate_user, create_user
@@ -41,6 +43,21 @@ async def login(
             )
         token = create_access_token({"sub": user.id})
         return TokenOut(access_token=token, token_type="bearer")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e),
+        ) from e
+
+
+@router.get("/me", response_model=UserOut)
+async def read_me(
+    current_user: Annotated[UserOut, Depends(get_current_user)],
+) -> UserOut:
+    try:
+        return current_user
     except HTTPException:
         raise
     except Exception as e:

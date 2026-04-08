@@ -1,13 +1,15 @@
+from typing import Annotated
+
 from fastapi import Depends, HTTPException, Request, status
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from app.core.security import decode_access_token
-
 from app.modules.user.model import UserOut
 from app.modules.user.service import get_user_by_id
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+# HTTPBearer: simple "Authorize" in Swagger UI (paste raw JWT after login).
+OAUTH_SCHEME = HTTPBearer(auto_error=False)
 
 
 def get_db(request: Request) -> AsyncIOMotorDatabase:
@@ -15,9 +17,19 @@ def get_db(request: Request) -> AsyncIOMotorDatabase:
 
 
 async def get_current_user(
-    token: str = Depends(oauth2_scheme),
+    credentials: Annotated[
+        HTTPAuthorizationCredentials | None,
+        Depends(OAUTH_SCHEME),
+    ],
     db: AsyncIOMotorDatabase = Depends(get_db),
 ) -> UserOut:
+    if credentials is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    token = credentials.credentials
     payload = decode_access_token(token)
     if payload is None:
         raise HTTPException(

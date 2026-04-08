@@ -1,0 +1,17 @@
+pytest:
+  stage: tests
+  image: python:3.13-slim
+  variables:
+    PYTHONPATH: "app:."
+  before_script:
+    - pip install --no-cache-dir -r ./app/requirements.txt
+  script:
+    - pytest --junitxml=report.xml --cov-report=xml:coverage.xml
+  coverage: '/Code coverage: \d+(?:\.\d+)?/'
+  artifacts:
+    when: always
+    reports:
+      junit: report.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage.xml

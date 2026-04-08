@@ -1,0 +1,49 @@
+deploy:
+  stage: deploy
+  image:
+    name: public.ecr.aws/sam/build-python3.13
+  needs:
+    - pytest
+    - build
+    - container_scanning
+  before_script:
+    - |
+      STACK_NAME="${SAM_STACK_NAME}-${STACK_SUFFIX}"
+      export STACK_NAME
+
+      STACK_STATUS=$(aws cloudformation describe-stacks \
+        --stack-name "$STACK_NAME" \
+        --region "$AWS_DEFAULT_REGION" \
+        --query "Stacks[0].StackStatus" \
+        --output text 2>/dev/null || echo "DOES_NOT_EXIST")
+
+      if [ "$STACK_STATUS" = "ROLLBACK_COMPLETE" ]; then
+        echo "Stack is ROLLBACK_COMPLETE, deleting..."
+        aws cloudformation delete-stack \
+          --stack-name "$STACK_NAME" \
+          --region "$AWS_DEFAULT_REGION"
+        aws cloudformation wait stack-delete-complete \
+          --stack-name "$STACK_NAME" \
+          --region "$AWS_DEFAULT_REGION"
+        echo "Stack deleted, continuing..."
+      fi
+  script:
+    - sam build -t infra/cloudformation.yml
+    - >
+      sam deploy
+      --stack-name "$STACK_NAME"
+      --parameter-overrides LambdaS3RoleArn=$LAMBDA_S3_ROLE_ARN
+      --region "$AWS_DEFAULT_REGION"
+      --capabilities CAPABILITY_IAM
+      --resolve-s3
+      --s3-prefix "$STACK_NAME"
+      --no-confirm-changeset
+      --no-fail-on-empty-changeset
+  rules:
+    - if: $CI_COMMIT_BRANCH == "staging"
+      variables:
+        STACK_SUFFIX: "staging"
+    - if: $CI_COMMIT_BRANCH == "prod"
+      variables:
+        STACK_SUFFIX: "prod"
+    - when: never

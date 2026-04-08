@@ -1,0 +1,9 @@
+lint:
+  stage: quality
+  image: python:3.13-slim
+  before_script:
+    - pip install --no-cache-dir -r ./app/requirements.txt
+  script:
+    - flake8 app tests
+    - black --check app tests
+    - bandit -r app -c pyproject.toml -f txt

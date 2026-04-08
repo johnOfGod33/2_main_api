@@ -1,0 +1,35 @@
+include:
+  - template: Jobs/Container-Scanning.gitlab-ci.yml
+
+variables:
+  SECURE_LOG_LEVEL: "debug"
+
+build:
+  stage: build
+  image: docker:latest
+  services:
+    - docker:dind
+  variables:
+    DOCKER_TLS_CERTDIR: "/certs"
+  before_script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+  script:
+    - docker build -t "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA" -t "$CI_REGISTRY_IMAGE:latest" .
+    - docker push "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA"
+    - docker push "$CI_REGISTRY_IMAGE:latest"
+  rules:
+    - if: $CI_COMMIT_BRANCH == "prod" || $CI_COMMIT_BRANCH == "staging"
+
+container_scanning:
+  stage: container_scanning
+  allow_failure: false
+  variables:
+    CS_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
+    CS_SEVERITY_THRESHOLD: "CRITICAL"
+    CS_DISABLE_LANGUAGE_VULNERABILITY_SCAN: "false"
+    TRIVY_EXIT_CODE: "1"
+    TRIVY_SEVERITY: "CRITICAL"
+  needs:
+    - build
+  rules:
+    - if: $CI_COMMIT_BRANCH == "prod" || $CI_COMMIT_BRANCH == "staging"

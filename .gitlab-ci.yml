@@ -1,0 +1,16 @@
+stages:
+  - tests
+  - quality
+  - build
+  - container_scanning
+  - pages
+  - deploy
+  - smoke
+
+include:
+  - local: .gitlab/ci/tests.yml
+  - local: .gitlab/ci/quality.yml
+  - local: .gitlab/ci/build.yml
+  - local: .gitlab/ci/pages.yml
+  - local: .gitlab/ci/deploy.yml
+  - local: .gitlab/ci/smoke.yml

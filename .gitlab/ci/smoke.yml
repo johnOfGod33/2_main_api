@@ -1,0 +1,21 @@
+smoke:
+  stage: smoke
+  image:
+    name: public.ecr.aws/sam/build-python3.13
+  needs:
+    - deploy
+  rules:
+    - if: $CI_COMMIT_BRANCH == "staging"
+      variables:
+        STACK_SUFFIX: "staging"
+    - if: $CI_COMMIT_BRANCH == "prod"
+      variables:
+        STACK_SUFFIX: "prod"
+    - when: never
+  before_script:
+    - pip install --no-cache-dir -r app/requirements.txt
+  script:
+    - export STACK_NAME="${SAM_STACK_NAME}-${STACK_SUFFIX}"
+    - export API_BASE_URL=$(aws cloudformation describe-stacks --stack-name "$STACK_NAME" --region "$AWS_DEFAULT_REGION" --query "Stacks[0].Outputs[?OutputKey=='ApiBaseUrl'].OutputValue | [0]" --output text)
+    - test -n "$API_BASE_URL"
+    - pytest tests/smoke -v --no-cov

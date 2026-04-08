@@ -60,7 +60,9 @@ class ArticleUpdate(BaseModel):
     """Partial update; omit fields you do not want to change."""
 
     model_config = ConfigDict(
-        json_schema_extra={"description": "Partial article update (all fields optional)."}
+        json_schema_extra={
+            "description": "Partial article update (all fields optional).",
+        },
     )
 
     title: str | None = Field(default=None, min_length=1, max_length=256)

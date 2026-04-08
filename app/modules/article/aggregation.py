@@ -3,7 +3,9 @@
 ARTICLES_COLLECTION = "articles"
 
 
-def lookup_article_listing_preview(local_article_id_field: str = "article_id") -> list[dict]:
+def lookup_article_listing_preview(
+    local_article_id_field: str = "article_id",
+) -> list[dict]:
     """
     Append after $match on offers/orders. Joins `articles` by string id and projects
     only fields needed for mobile list/detail headers.

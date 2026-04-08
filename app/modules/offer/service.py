@@ -8,7 +8,6 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from app.modules.article.aggregation import lookup_article_listing_preview
 from app.modules.article.model import ArticleStatus
 from app.modules.article.service import (
-    article_to_listing_preview,
     get_article_by_id,
     update_article_status_by_id,
 )

@@ -28,6 +28,7 @@ def article_to_listing_preview(article: ArticleOut) -> ArticleListingPreview:
         primary_image_url=article.images[0] if article.images else None,
     )
 
+
 ARTICLES_COLLECTION = "articles"
 
 

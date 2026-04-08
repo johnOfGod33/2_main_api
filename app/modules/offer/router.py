@@ -16,7 +16,11 @@ from .service import (
 router = APIRouter()
 
 
-@router.post("", response_model=OfferWithArticleOut, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=OfferWithArticleOut,
+    status_code=status.HTTP_201_CREATED,
+)
 async def post_offer(
     body: OfferCreate,
     db: AsyncIOMotorDatabase = Depends(get_db),

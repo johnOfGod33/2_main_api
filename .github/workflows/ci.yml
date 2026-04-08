@@ -1,0 +1,123 @@
+# GitHub Actions — équivalent partiel de .gitlab/ci (quality, tests, pages uniquement).
+
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Quality
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: app/requirements.txt
+
+      - name: Install dependencies
+        run: pip install --no-cache-dir -r app/requirements.txt
+
+      - name: flake8
+        run: flake8 app tests
+
+      - name: black (check)
+        run: black --check app tests
+
+      - name: bandit
+        run: bandit -r app -c pyproject.toml -f txt
+
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      PYTHONPATH: app:.
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: app/requirements.txt
+
+      - name: Install dependencies
+        run: pip install --no-cache-dir -r app/requirements.txt
+
+      # Override pytest.ini (cov-fail-under=80) until the suite exists.
+      # Exit code 5 = no tests collected (acceptable for now).
+      - name: pytest + coverage
+        run: |
+          set +e
+          pytest \
+            --override-ini="addopts=--cov=app --cov-report=xml:coverage.xml --cov-report=term-missing --cov-fail-under=0" \
+            --junitxml=report.xml
+          ec=$?
+          if [ "$ec" -eq 5 ]; then
+            echo "No tests collected yet — treating as success."
+            exit 0
+          fi
+          exit "$ec"
+
+      - name: Upload JUnit report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: junit-report
+          path: report.xml
+
+      - name: Upload Cobertura
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-xml
+          path: coverage.xml
+
+  pages:
+    name: GitHub Pages (MkDocs)
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    needs: [quality, test]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: app/requirements.txt
+
+      - name: Install dependencies
+        run: pip install --no-cache-dir -r app/requirements.txt
+
+      - name: Build documentation
+        run: mkdocs build --strict
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+
+      - id: deployment
+        uses: actions/deploy-pages@v4

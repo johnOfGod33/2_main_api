@@ -1,5 +1,6 @@
-site_name: Nexus File Share
-site_description: Technical documentation and architecture — Nexus Solutions
+site_name: 2ème Main API
+site_description: Marketplace API (second-hand) — documentation & architecture
+
 docs_dir: docs
 site_dir: public
 
@@ -45,4 +46,6 @@ plugins:
 nav:
   - Home: index.md
   - Architecture: architecture.md
-  - Technical reference: technical.md
+  - API & modules: technical.md
+  - Development: development.md
+  - CI / GitHub Actions: ci.md

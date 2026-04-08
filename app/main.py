@@ -5,6 +5,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .core.database import shutdown_mongodb, start_up_mongodb
 from .modules.article.router import router as article_router
+from .modules.offer.router import router as offer_router
+from .modules.order.router import router as order_router
 from .modules.user.router import router as auth_router
 
 
@@ -32,6 +34,8 @@ app.add_middleware(
 
 app.include_router(auth_router)
 app.include_router(article_router)
+app.include_router(offer_router, prefix="/offers", tags=["Offers"])
+app.include_router(order_router, prefix="/orders", tags=["Orders"])
 
 
 @app.get("/health", status_code=status.HTTP_200_OK)

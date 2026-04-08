@@ -5,23 +5,34 @@ from bson.errors import InvalidId
 from fastapi import HTTPException, status
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
-from .model import ArticleCreate, ArticleOut, ArticleStatus, ArticleUpdate
+from .model import (
+    ArticleCreate,
+    ArticleListingPreview,
+    ArticleOut,
+    ArticleStatus,
+    ArticleUpdate,
+)
+
+
+def article_to_listing_preview(article: ArticleOut) -> ArticleListingPreview:
+    """Map full article API model to the embedded card (no extra DB roundtrip)."""
+    desc = article.description
+    if len(desc) > 140:
+        desc = desc[:140] + "…"
+    return ArticleListingPreview(
+        id=article.id,
+        title=article.title,
+        description_preview=desc,
+        list_price=article.price,
+        status=article.status,
+        primary_image_url=article.images[0] if article.images else None,
+    )
 
 ARTICLES_COLLECTION = "articles"
 
 
 def _doc_to_article_out(doc: dict) -> ArticleOut:
-    return ArticleOut(
-        id=str(doc["_id"]),
-        title=doc["title"],
-        description=doc["description"],
-        price=doc["price"],
-        status=ArticleStatus(doc["status"]),
-        images=list(doc.get("images") or []),
-        owner_id=doc["owner_id"],
-        created_at=doc["created_at"],
-        updated_at=doc["updated_at"],
-    )
+    return ArticleOut.model_validate(doc)
 
 
 async def create_article(
@@ -142,3 +153,28 @@ async def delete_article(
             detail="Not allowed to delete this article.",
         )
     await db[ARTICLES_COLLECTION].delete_one({"_id": oid})
+
+
+async def update_article_status_by_id(
+    db: AsyncIOMotorDatabase,
+    article_id: str,
+    new_status: ArticleStatus,
+) -> None:
+    """Set article status (internal use by offer/order flows)."""
+    try:
+        oid = ObjectId(article_id)
+    except InvalidId:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Article not found.",
+        )
+    now = datetime.now(timezone.utc)
+    res = await db[ARTICLES_COLLECTION].update_one(
+        {"_id": oid},
+        {"$set": {"status": new_status.value, "updated_at": now}},
+    )
+    if res.matched_count == 0:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Article not found.",
+        )

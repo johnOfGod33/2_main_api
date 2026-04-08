@@ -1,13 +1,39 @@
-from datetime import datetime
 from enum import Enum
 
 from pydantic import BaseModel, ConfigDict, Field
+
+from app.core.custom_document import CustomDBDocument
 
 
 class ArticleStatus(str, Enum):
     draft = "draft"
     published = "published"
-    closed = "closed"
+    reserved = "reserved"  # accepted offer or direct purchase awaiting payment
+    sold = "sold"  # paid order, listing completed
+    closed = "closed"  # seller closed manually
+
+
+class ArticleListingPreview(BaseModel):
+    """Lean article payload for embedded cards (offers, orders, notifications)."""
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "description": "Listing snapshot: title, image, short text, list price.",
+        }
+    )
+
+    id: str = Field(description="Article ObjectId string.")
+    title: str
+    description_preview: str = Field(
+        default="",
+        description="Description truncated (~140 chars) for list/detail headers.",
+    )
+    list_price: float = Field(description="Current listing price on the article.")
+    status: ArticleStatus
+    primary_image_url: str | None = Field(
+        default=None,
+        description="First image URL if any.",
+    )
 
 
 class ArticleCreate(BaseModel):
@@ -44,19 +70,17 @@ class ArticleUpdate(BaseModel):
     images: list[str] | None = None
 
 
-class ArticleOut(BaseModel):
-    """Article returned by the API."""
+class ArticleOut(CustomDBDocument):
+    """Article persisted in MongoDB and returned by the API."""
 
     model_config = ConfigDict(
-        json_schema_extra={"description": "Article as exposed by the API."}
+        populate_by_name=True,
+        json_schema_extra={"description": "Article as exposed by the API."},
     )
 
-    id: str = Field(description="Article id (ObjectId as string).")
     title: str
     description: str
     price: float
     status: ArticleStatus
     images: list[str]
     owner_id: str = Field(description="User id of the seller.")
-    created_at: datetime
-    updated_at: datetime

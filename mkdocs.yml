@@ -45,6 +45,7 @@ plugins:
 
 nav:
   - Home: index.md
+  - Parcours metier (stakeholder): business-flow.md
   - Architecture: architecture.md
   - API & modules: technical.md
   - Development: development.md

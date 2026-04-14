@@ -46,7 +46,7 @@ async def list_articles(
             limit,
             owner_id=owner_id,
         )
-        return hydrate_articles_image_urls(articles)
+        return await hydrate_articles_image_urls(articles)
     except HTTPException:
         raise
     except Exception as e:
@@ -68,7 +68,7 @@ async def get_article(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Article not found.",
             )
-        return hydrate_article_image_urls(article)
+        return await hydrate_article_image_urls(article)
     except HTTPException:
         raise
     except Exception as e:

@@ -1,9 +1,11 @@
+from asyncio import Semaphore, gather
 from datetime import datetime, timezone
 
 from bson import ObjectId
 from bson.errors import InvalidId
 from fastapi import HTTPException, status
 from motor.motor_asyncio import AsyncIOMotorDatabase
+from starlette.concurrency import run_in_threadpool
 
 from app.modules.storage.service import sign_object_url
 
@@ -15,7 +17,8 @@ from .model import (
     ArticleUpdate,
 )
 
-SIGNED_IMAGE_TTL_SECONDS = 900
+SIGNED_IMAGE_TTL_SECONDS = 86400
+SIGNED_URL_CONCURRENCY_LIMIT = 50
 
 
 def _is_absolute_url(value: str) -> bool:
@@ -28,13 +31,35 @@ def _resolve_image_url(image_ref: str) -> str:
     return sign_object_url(image_ref, expires_in=SIGNED_IMAGE_TTL_SECONDS)
 
 
-def hydrate_article_image_urls(article: ArticleOut) -> ArticleOut:
-    resolved_images = [_resolve_image_url(image_ref) for image_ref in article.images]
+async def _resolve_image_url_async(image_ref: str, semaphore: Semaphore) -> str:
+    if _is_absolute_url(image_ref):
+        return image_ref
+    async with semaphore:
+        return await run_in_threadpool(
+            sign_object_url,
+            image_ref,
+            SIGNED_IMAGE_TTL_SECONDS,
+            False,
+        )
+
+
+async def hydrate_article_image_urls(
+    article: ArticleOut,
+    semaphore: Semaphore | None = None,
+) -> ArticleOut:
+    effective_semaphore = semaphore or Semaphore(SIGNED_URL_CONCURRENCY_LIMIT)
+    tasks = [
+        _resolve_image_url_async(image_ref, effective_semaphore)
+        for image_ref in article.images
+    ]
+    resolved_images = await gather(*tasks)
     return article.model_copy(update={"images": resolved_images})
 
 
-def hydrate_articles_image_urls(articles: list[ArticleOut]) -> list[ArticleOut]:
-    return [hydrate_article_image_urls(article) for article in articles]
+async def hydrate_articles_image_urls(articles: list[ArticleOut]) -> list[ArticleOut]:
+    semaphore = Semaphore(SIGNED_URL_CONCURRENCY_LIMIT)
+    tasks = [hydrate_article_image_urls(article, semaphore) for article in articles]
+    return await gather(*tasks)
 
 
 def article_to_listing_preview(article: ArticleOut) -> ArticleListingPreview:

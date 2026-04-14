@@ -64,13 +64,13 @@ def upload_object(file: UploadFile) -> str:
         ) from e
 
 
-def download_object(key: str, expires_in: int = 900) -> str:
+def download_object(key: str, expires_in: int = 86400) -> str:
     return sign_object_url(key=key, expires_in=expires_in, verify_exists=True)
 
 
 def sign_object_url(
     key: str,
-    expires_in: int = 900,
+    expires_in: int = 86400,
     verify_exists: bool = False,
 ) -> str:
     cache_key = (key, expires_in)

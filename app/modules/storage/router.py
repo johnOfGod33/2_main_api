@@ -33,7 +33,7 @@ async def upload(
 async def download(
     # _: Annotated[UserOut, Depends(get_current_user)],
     key: str,
-    expires_in: int = Query(default=900, ge=60, le=86400),
+    expires_in: int = Query(default=86400, ge=60, le=86400),
 ) -> DownloadUrlResponse:
     signed_url = await run_in_threadpool(sign_object_url, key, expires_in, False)
     return DownloadUrlResponse(key=key, url=signed_url)

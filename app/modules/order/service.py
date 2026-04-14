@@ -93,7 +93,8 @@ async def create_direct_order(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Article must be published for direct purchase.",
         )
-    if article.owner_id == buyer_id:
+    seller_id = article.owner.id
+    if seller_id == buyer_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Cannot purchase your own listing.",
@@ -107,7 +108,7 @@ async def create_direct_order(
     doc = {
         "article_id": article_id,
         "buyer_id": buyer_id,
-        "seller_id": article.owner_id,
+        "seller_id": seller_id,
         "amount": article.price,
         "status": OrderStatus.pending.value,
         "offer_id": None,

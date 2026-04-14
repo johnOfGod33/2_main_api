@@ -74,7 +74,8 @@ async def create_offer(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Offers are only allowed on published listings.",
         )
-    if article.owner_id == buyer_id:
+    seller_id = article.owner.id
+    if seller_id == buyer_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Cannot place an offer on your own listing.",
@@ -97,7 +98,7 @@ async def create_offer(
         "amount": offer.amount,
         "status": OfferStatus.pending.value,
         "buyer_id": buyer_id,
-        "seller_id": article.owner_id,
+        "seller_id": seller_id,
         "created_at": now,
         "updated_at": now,
     }
@@ -131,7 +132,7 @@ async def get_offers_for_article(
         ],
     )
     buyer_ids = {r.buyer_id for r in rows}
-    if requester_id != article.owner_id and requester_id not in buyer_ids:
+    if requester_id != article.owner.id and requester_id not in buyer_ids:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not allowed to view offers for this article.",

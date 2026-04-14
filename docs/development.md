@@ -35,7 +35,20 @@ JWT_EXPIRE_MINUTES=1440
 ENVIRONMENT=development
 ```
 
-Pour S3 / upload (si activé dans le projet), compléter `AWS_*` selon `.env.example`.
+Pour Cloudflare R2 / upload, compléter les variables storage de `.env.example`:
+
+```env
+AWS_ACCESS_KEY_ID=...
+AWS_SECRET_ACCESS_KEY=...
+AWS_S3_BUCKET=...
+AWS_REGION=auto
+R2_ACCOUNT_ID=<account_id>   # ou AWS_S3_ENDPOINT_URL=https://<account_id>.r2.cloudflarestorage.com
+```
+
+Flow recommande pour les images article:
+1. Uploader chaque image via `POST /storage/upload`.
+2. Recuperer la `key` retournee.
+3. Envoyer ces `key` dans `POST /articles` -> champ `images`.
 
 ## Docker
 

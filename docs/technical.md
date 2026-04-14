@@ -28,6 +28,18 @@ Les routes protégées attendent un header `Authorization: Bearer` suivi du jeto
 | PATCH | `/articles/{id}` | Oui | Mise à jour |
 | DELETE | `/articles/{id}` | Oui | Suppression |
 
+Note image:
+- A la creation/mise a jour, `images` contient des references storage (keys R2) ou des URLs absolues.
+- En lecture (`GET /articles*`), l'API resolve les references storage en URLs signees temporaires.
+
+## Storage (`app/modules/storage`)
+
+| Méthode | Chemin | Auth | Description |
+|---------|--------|------|-------------|
+| POST | `/storage/upload` | Oui | Upload d'un fichier image dans le bucket |
+| GET | `/storage/download/{key}` | Non | Retourne une URL signee de lecture |
+| GET | `/storage/objects` | Oui | Liste des objets du bucket |
+
 ## Offres (`app/modules/offer`)
 
 Préfixe : `/offers`. Les réponses enrichies peuvent inclure les informations de l'article associé (agrégations MongoDB côté service).

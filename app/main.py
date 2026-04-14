@@ -68,7 +68,10 @@ async def root():
   <title>Second Hand API</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Outfit:wght@300;500&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Outfit:wght@300;500&display=swap"
+    rel="stylesheet"
+  >
   <style>
     :root {
       --ink: #1a1a1c;
@@ -89,7 +92,11 @@ async def root():
       font-weight: 300;
       color: var(--ink);
       background:
-        radial-gradient(ellipse 120% 80% at 50% -20%, rgba(139, 115, 85, 0.12), transparent 55%),
+        radial-gradient(
+          ellipse 120% 80% at 50% -20%,
+          rgba(139, 115, 85, 0.12),
+          transparent 55%
+        ),
         linear-gradient(180deg, var(--paper) 0%, #ebe8e1 100%);
     }
     main {
@@ -172,7 +179,10 @@ async def root():
   <main>
     <div class="mark" aria-hidden="true"></div>
     <h1>Second Hand <span>API</span></h1>
-    <p class="lead">Vous êtes sur la racine du service. L’interface utile, c’est plutôt la doc OpenAPI — ou vos clients qui appellent les routes métier.</p>
+    <p class="lead">
+      Vous êtes sur la racine du service. L’interface utile, c’est plutôt la doc
+      OpenAPI — ou vos clients qui appellent les routes métier.
+    </p>
     <nav>
       <a class="primary" href="/docs">Documentation</a>
       <a href="/redoc">ReDoc</a>

@@ -29,7 +29,8 @@ def _resolve_image_url(image_ref: str) -> str:
 
 
 def hydrate_article_image_urls(article: ArticleOut) -> ArticleOut:
-    return article.model_copy(update={"images": [_resolve_image_url(i) for i in article.images]})
+    resolved_images = [_resolve_image_url(image_ref) for image_ref in article.images]
+    return article.model_copy(update={"images": resolved_images})
 
 
 def hydrate_articles_image_urls(articles: list[ArticleOut]) -> list[ArticleOut]:
@@ -47,7 +48,9 @@ def article_to_listing_preview(article: ArticleOut) -> ArticleListingPreview:
         description_preview=desc,
         list_price=article.price,
         status=article.status,
-        primary_image_url=_resolve_image_url(article.images[0]) if article.images else None,
+        primary_image_url=(
+            _resolve_image_url(article.images[0]) if article.images else None
+        ),
     )
 
 

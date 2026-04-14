@@ -1,0 +1,23 @@
+repos:
+  - repo: local
+    hooks:
+      - id: flake8-quality
+        name: flake8 quality
+        entry: .venv/bin/flake8 app tests
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
+
+      - id: black-quality
+        name: black quality check
+        entry: .venv/bin/black --check app tests
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
+
+      - id: bandit-quality
+        name: bandit quality check
+        entry: .venv/bin/bandit -r app -c pyproject.toml -f txt
+        language: system
+        pass_filenames: false
+        stages: [pre-push]

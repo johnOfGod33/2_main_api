@@ -80,10 +80,31 @@ def article_to_listing_preview(article: ArticleOut) -> ArticleListingPreview:
 
 
 ARTICLES_COLLECTION = "articles"
+USERS_COLLECTION = "users"
 
 
 def _doc_to_article_out(doc: dict) -> ArticleOut:
     return ArticleOut.model_validate(doc)
+
+
+def _articles_projection() -> dict:
+    return {
+        "_id": 1,
+        "title": 1,
+        "description": 1,
+        "price": 1,
+        "status": 1,
+        "images": 1,
+        "created_at": 1,
+        "updated_at": 1,
+        "owner": {
+            "id": {"$toString": "$owner_doc._id"},
+            "username": "$owner_doc.username",
+            "first_name": "$owner_doc.first_name",
+            "last_name": "$owner_doc.last_name",
+            "profile": {"$ifNull": ["$owner_doc.profile", {}]},
+        },
+    }
 
 
 async def create_article(
@@ -103,8 +124,13 @@ async def create_article(
         "updated_at": now,
     }
     result = await db[ARTICLES_COLLECTION].insert_one(doc)
-    doc["_id"] = result.inserted_id
-    return _doc_to_article_out(doc)
+    created = await get_article_by_id(db, str(result.inserted_id))
+    if created is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Article creation inconsistency.",
+        )
+    return created
 
 
 async def get_articles(
@@ -119,13 +145,39 @@ async def get_articles(
         query["status"] = status.value
     if owner_id is not None:
         query["owner_id"] = owner_id
-    cursor = (
-        db[ARTICLES_COLLECTION]
-        .find(query)
-        .sort("created_at", -1)
-        .skip(skip)
-        .limit(limit)
-    )
+    pipeline = [
+        {"$match": query},
+        {"$sort": {"created_at": -1}},
+        {"$skip": skip},
+        {"$limit": limit},
+        {
+            "$lookup": {
+                "from": USERS_COLLECTION,
+                "let": {"oid": "$owner_id"},
+                "pipeline": [
+                    {
+                        "$match": {
+                            "$expr": {"$eq": [{"$toString": "$_id"}, "$$oid"]},
+                        }
+                    },
+                    {
+                        "$project": {
+                            "_id": 1,
+                            "username": 1,
+                            "first_name": 1,
+                            "last_name": 1,
+                            "profile": 1,
+                        }
+                    },
+                ],
+                "as": "owner_doc_arr",
+            }
+        },
+        {"$addFields": {"owner_doc": {"$first": "$owner_doc_arr"}}},
+        {"$match": {"owner_doc": {"$ne": None}}},
+        {"$project": _articles_projection()},
+    ]
+    cursor = db[ARTICLES_COLLECTION].aggregate(pipeline)
     docs = await cursor.to_list(length=limit)
     return [_doc_to_article_out(d) for d in docs]
 
@@ -138,10 +190,39 @@ async def get_article_by_id(
         oid = ObjectId(article_id)
     except InvalidId:
         return None
-    doc = await db[ARTICLES_COLLECTION].find_one({"_id": oid})
-    if doc is None:
+    pipeline = [
+        {"$match": {"_id": oid}},
+        {
+            "$lookup": {
+                "from": USERS_COLLECTION,
+                "let": {"oid": "$owner_id"},
+                "pipeline": [
+                    {
+                        "$match": {
+                            "$expr": {"$eq": [{"$toString": "$_id"}, "$$oid"]},
+                        }
+                    },
+                    {
+                        "$project": {
+                            "_id": 1,
+                            "username": 1,
+                            "first_name": 1,
+                            "last_name": 1,
+                            "profile": 1,
+                        }
+                    },
+                ],
+                "as": "owner_doc_arr",
+            }
+        },
+        {"$addFields": {"owner_doc": {"$first": "$owner_doc_arr"}}},
+        {"$match": {"owner_doc": {"$ne": None}}},
+        {"$project": _articles_projection()},
+    ]
+    docs = await db[ARTICLES_COLLECTION].aggregate(pipeline).to_list(length=1)
+    if not docs:
         return None
-    return _doc_to_article_out(doc)
+    return _doc_to_article_out(docs[0])
 
 
 async def update_article(
@@ -175,13 +256,13 @@ async def update_article(
         patch["status"] = patch["status"].value
     patch["updated_at"] = datetime.now(timezone.utc)
     await db[ARTICLES_COLLECTION].update_one({"_id": oid}, {"$set": patch})
-    updated = await db[ARTICLES_COLLECTION].find_one({"_id": oid})
+    updated = await get_article_by_id(db, article_id)
     if updated is None:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Article update inconsistency.",
         )
-    return _doc_to_article_out(updated)
+    return updated
 
 
 async def delete_article(

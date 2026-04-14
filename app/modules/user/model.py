@@ -6,6 +6,50 @@ from app.core.custom_document import CustomDBDocument
 from app.core.security import BCRYPT_MAX_PASSWORD_BYTES
 
 
+class UserProfile(BaseModel):
+    """Public profile metadata displayed on user pages."""
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "description": "Optional public profile information for a user.",
+        }
+    )
+
+    bio: str | None = Field(default=None, max_length=500)
+    avatar_url: str | None = Field(default=None, max_length=2048)
+    city: str | None = Field(default=None, max_length=128)
+    country_code: str | None = Field(
+        default=None,
+        min_length=2,
+        max_length=2,
+        pattern=r"^[A-Z]{2}$",
+        description="ISO 3166-1 alpha-2 country code (e.g. FR, US).",
+    )
+    language: str | None = Field(default=None, max_length=16)
+
+
+class UserProfileUpdate(BaseModel):
+    """Partial profile update payload."""
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "description": "Patch payload for profile fields. Only sent fields update.",
+        }
+    )
+
+    bio: str | None = Field(default=None, max_length=500)
+    avatar_url: str | None = Field(default=None, max_length=2048)
+    city: str | None = Field(default=None, max_length=128)
+    country_code: str | None = Field(
+        default=None,
+        min_length=2,
+        max_length=2,
+        pattern=r"^[A-Z]{2}$",
+        description="ISO 3166-1 alpha-2 country code (e.g. FR, US).",
+    )
+    language: str | None = Field(default=None, max_length=16)
+
+
 class UserCreate(BaseModel):
     """Registration payload (POST /auth/register body)."""
 
@@ -46,6 +90,16 @@ class UserCreate(BaseModel):
         max_length=128,
         description="User last name.",
     )
+    phone_number: str | None = Field(
+        default=None,
+        min_length=6,
+        max_length=32,
+        description="Optional phone number.",
+    )
+    profile: UserProfile = Field(
+        default_factory=UserProfile,
+        description="Optional profile metadata.",
+    )
 
 
 class UserInDB(CustomDBDocument):
@@ -69,6 +123,8 @@ class UserInDB(CustomDBDocument):
         default=True,
         description="Whether the account may sign in and use the API.",
     )
+    phone_number: str | None = Field(default=None)
+    profile: UserProfile = Field(default_factory=UserProfile)
 
 
 class UserOut(BaseModel):
@@ -86,7 +142,31 @@ class UserOut(BaseModel):
     username: str = Field(description="Username.")
     first_name: str = Field(description="First name.")
     last_name: str = Field(description="Last name.")
+    phone_number: str | None = Field(default=None, description="Optional phone number.")
+    profile: UserProfile = Field(
+        default_factory=UserProfile,
+        description="Optional profile metadata.",
+    )
     created_at: datetime = Field(description="Account creation time (UTC).")
+
+
+class UserPublicProfileOut(BaseModel):
+    """Public profile exposed to anonymous or authenticated users."""
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "description": "Public user profile (no email or phone number).",
+        }
+    )
+
+    id: str = Field(description="User id (ObjectId as string).")
+    username: str = Field(description="Username.")
+    first_name: str = Field(description="First name.")
+    last_name: str = Field(description="Last name.")
+    profile: UserProfile = Field(
+        default_factory=UserProfile,
+        description="Public profile metadata.",
+    )
 
 
 class LoginInput(BaseModel):

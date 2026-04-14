@@ -3,6 +3,7 @@ from enum import Enum
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.core.custom_document import CustomDBDocument
+from app.modules.user.model import UserPublicProfileOut
 
 
 class ArticleStatus(str, Enum):
@@ -85,4 +86,6 @@ class ArticleOut(CustomDBDocument):
     price: float
     status: ArticleStatus
     images: list[str]
-    owner_id: str = Field(description="User id of the seller.")
+    owner: UserPublicProfileOut = Field(
+        description="Public seller profile (no email or phone number).",
+    )

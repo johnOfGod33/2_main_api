@@ -15,6 +15,7 @@ Les schémas détaillés et exemples de requêtes sont disponibles dans la **doc
 | POST | `/auth/register` | Non | Création de compte |
 | POST | `/auth/login` | Non | Obtention d'un JWT |
 | GET | `/auth/me` | Oui | Profil de l'utilisateur connecté |
+| GET | `/auth/profile/{user_id}` | Non | Profil public d'un utilisateur (sans email/téléphone) |
 
 Les routes protégées attendent un header `Authorization: Bearer` suivi du jeton JWT.
 
@@ -31,6 +32,8 @@ Les routes protégées attendent un header `Authorization: Bearer` suivi du jeto
 Note image:
 - A la creation/mise a jour, `images` contient des references storage (keys R2) ou des URLs absolues.
 - En lecture (`GET /articles*`), l'API resolve les references storage en URLs signees temporaires.
+- En lecture (`GET /articles*`), `owner` contient le profil public du vendeur
+  (avec `id`, `username`, `first_name`, `last_name`, `profile`) et pas de `owner_id` brut.
 
 ## Storage (`app/modules/storage`)
 

@@ -96,6 +96,14 @@ Exemple de body:
   - `GET /articles` (liste)
   - `GET /articles/{article_id}` (detail)
 - Impact produit: l'acheteur choisit une annonce interessante
+- Donnees vendeur exposees: profil public seulement (pas d'email, pas de telephone).
+
+### 5bis) Voir le profil public d'un vendeur
+
+- Endpoint: `GET /auth/profile/{user_id}`
+- Auth: non requis
+- Impact produit: l'acheteur reste dans l'application pour consulter un profil
+  public (ville, bio, avatar, langue, etc.) sans donner acces aux coordonnees privees.
 
 ### 6) Faire une offre (acheteur)
 

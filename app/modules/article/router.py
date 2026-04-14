@@ -12,6 +12,8 @@ from .service import (
     delete_article,
     get_article_by_id,
     get_articles,
+    hydrate_article_image_urls,
+    hydrate_articles_image_urls,
     update_article,
 )
 
@@ -37,13 +39,14 @@ async def list_articles(
         effective_status = (
             status_filter if current_user is not None else ArticleStatus.published
         )
-        return await get_articles(
+        articles = await get_articles(
             db,
             effective_status,
             skip,
             limit,
             owner_id=owner_id,
         )
+        return hydrate_articles_image_urls(articles)
     except HTTPException:
         raise
     except Exception as e:
@@ -65,7 +68,7 @@ async def get_article(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Article not found.",
             )
-        return article
+        return hydrate_article_image_urls(article)
     except HTTPException:
         raise
     except Exception as e:

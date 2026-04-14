@@ -5,6 +5,8 @@ from bson.errors import InvalidId
 from fastapi import HTTPException, status
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
+from app.modules.storage.service import sign_object_url
+
 from .model import (
     ArticleCreate,
     ArticleListingPreview,
@@ -12,6 +14,26 @@ from .model import (
     ArticleStatus,
     ArticleUpdate,
 )
+
+SIGNED_IMAGE_TTL_SECONDS = 900
+
+
+def _is_absolute_url(value: str) -> bool:
+    return value.startswith("http://") or value.startswith("https://")
+
+
+def _resolve_image_url(image_ref: str) -> str:
+    if _is_absolute_url(image_ref):
+        return image_ref
+    return sign_object_url(image_ref, expires_in=SIGNED_IMAGE_TTL_SECONDS)
+
+
+def hydrate_article_image_urls(article: ArticleOut) -> ArticleOut:
+    return article.model_copy(update={"images": [_resolve_image_url(i) for i in article.images]})
+
+
+def hydrate_articles_image_urls(articles: list[ArticleOut]) -> list[ArticleOut]:
+    return [hydrate_article_image_urls(article) for article in articles]
 
 
 def article_to_listing_preview(article: ArticleOut) -> ArticleListingPreview:
@@ -25,7 +47,7 @@ def article_to_listing_preview(article: ArticleOut) -> ArticleListingPreview:
         description_preview=desc,
         list_price=article.price,
         status=article.status,
-        primary_image_url=article.images[0] if article.images else None,
+        primary_image_url=_resolve_image_url(article.images[0]) if article.images else None,
     )
 
 

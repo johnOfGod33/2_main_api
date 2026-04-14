@@ -25,6 +25,12 @@ class EnvConfig(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     JWT_EXPIRE_MINUTES: int = 60 * 24
 
+    AWS_ACCESS_KEY_ID: str = ""
+    AWS_SECRET_ACCESS_KEY: str = ""
+    AWS_S3_ENDPOINT_URL: str | None = None
+    AWS_S3_BUCKET: str = "deuxieme-main"
+    AWS_REGION: str = "auto"
+
 
 envConfig = EnvConfig()
 
